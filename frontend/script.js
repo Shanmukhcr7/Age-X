@@ -257,7 +257,7 @@ async function captureAndSend() {
 
   const img = canvas.toDataURL("image/jpeg").split(",")[1];
 
-  const res = await fetch("http://127.0.0.1:8000/api/age-check", {
+  const res = await fetch("https://age-x.onrender.com", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image: img })
