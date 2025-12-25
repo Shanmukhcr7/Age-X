@@ -1,78 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <title>Age-Safe Reels - Premium AI Protection</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Age-X: The world's safest, age-aware short video platform." />
+  <title>Age-X | Safety First</title>
 
-  <!-- Premium Fonts -->
+  <!-- Fonts: Inter & Space Grotesk -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=Space+Grotesk:wght@300;500;700&display=swap"
+    rel="stylesheet">
 
-  <!-- Styles -->
+  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
 
-  <!-- APP WRAPPER -->
-  <div class="app">
+<body class="loading-state">
 
-    <!-- REEL CONTAINER (IMPORTANT FOR SWIPE) -->
-    <div id="reelContainer">
-
-      <!-- MAIN REEL PLAYER -->
-      <iframe
-  id="reelPlayer"
-  allow="autoplay; encrypted-media; fullscreen; playsinline"
-  allowfullscreen
-></iframe>
-
-
+  <!-- SPLASH SCREEN -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <h1 class="splash-logo">AGE<span class="highlight">-X</span></h1>
+      <p class="splash-text">Initializing Secure Environment...</p>
+      <div class="loader-line"></div>
     </div>
-
-    <!-- TOP OVERLAY -->
-    <div class="top-overlay">
-      <div class="logo">AgeSafe</div>
-      <div id="ageStatus" class="age-status">Detecting age…</div>
-    </div>
-
-    
-
-    <!-- CAMERA PREVIEW -->
-    <video
-      id="camera"
-      autoplay
-      muted
-      playsinline
-      class="camera-preview"
-    ></video>
-
-    <!-- HIDDEN CANVAS -->
-    <canvas id="captureCanvas"></canvas>
-
-    <!-- SWIPE HINT -->
-    <div class="swipe-hint">
-      Swipe up / down
-    </div>
-
-    <!-- PC CONTROLS (DESKTOP ONLY) -->
-    <div class="pc-controls">
-      <button id="prevBtn" aria-label="Previous">
-        <i data-lucide="skip-back" class="icon-prev"></i>
-      </button>
-      <button id="nextBtn" aria-label="Next">
-        <i data-lucide="skip-forward" class="icon-next"></i>
-      </button>
-    </div>
-
   </div>
 
-  <!-- SCRIPT (MODULE) -->
-  <script type="module" src="script.js"></script>
+  <!-- MAIN APP CONTAINER -->
+  <main class="app-container" aria-hidden="true">
 
+    <!-- GLOBAL ELEMENTS (Always Visible) -->
+    <header class="top-bar glass-panel">
+      <div class="brand">
+        <span class="logo-text">AGE-X</span>
+      </div>
+      <button id="btnCameraToggle" class="icon-btn-ghost" aria-label="Toggle Camera">
+        <i data-lucide="video"></i>
+      </button>
+      <div id="statusBadge" class="status-badge status-kid">
+        <i data-lucide="shield-check" class="icon-sm"></i>
+        <span id="ageLabel">Kid Safe</span>
+      </div>
+    </header>
+
+    <div class="camera-wrapper glass-panel">
+      <video id="cameraFeed" autoplay muted playsinline></video>
+      <div class="scan-line"></div>
+    </div>
+
+    <!-- VIEWS -->
+    <div id="viewsWrapper" class="views-wrapper">
+
+      <!-- LOGIN VIEW -->
+      <section id="view-login" class="view active-view" data-route="login">
+        <div class="login-container">
+          <h1>Welcome into the Future</h1>
+          <p>Experience the safest way to stream.</p>
+          <button id="btnLogin" class="btn-primary glass-btn">
+            <i data-lucide="chrome"></i>
+            <span>Continue with Google</span>
+          </button>
+          <div class="legal-text">
+            By continuing, you agree to our <strong>Safety Protocol</strong>.
+          </div>
+        </div>
+      </section>
+
+      <!-- HOME VIEW (Grid) -->
+      <section id="view-home" class="view" data-route="home">
+        <h2 class="view-title">Discover</h2>
+        <div class="content-grid" id="homeGrid">
+          <!-- Dynamic Items -->
+        </div>
+      </section>
+
+      <!-- REELS VIEW (Player) -->
+      <section id="view-reels" class="view" data-route="reels">
+        <div id="reelContainer" class="reel-container">
+          <iframe id="reelPlayer" title="Content Player" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; compute-pressure"
+            allowfullscreen>
+          </iframe>
+          <div class="video-overlay-gradient"></div>
+
+          <div id="scanningOverlay" class="scanning-overlay">
+            <div class="scan-line"></div>
+            <div class="scan-text">Analyzing Face...</div>
+          </div>
+
+          <div id="noFaceOverlay" class="no-face-overlay">
+            <i data-lucide="eye-off" class="warning-icon"></i>
+            <div class="warning-text">Face Lost</div>
+            <div class="warning-sub">Security Lock Active. Please align face to camera.</div>
+          </div>
+
+          <div class="swipe-hint-overlay">
+            <i data-lucide="chevrons-up"></i>
+            Swipe
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE VIEW -->
+      <section id="view-profile" class="view" data-route="profile">
+        <div class="profile-header">
+          <div class="profile-avatar glass-effect" id="profileAvatar">
+            <i data-lucide="user"></i>
+          </div>
+          <h2 id="profileName">Guest User</h2>
+          <p id="profileEmail">Safe Mode Active</p>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card glass-panel">
+            <span class="stat-val">0</span>
+            <span class="stat-label">Saved</span>
+          </div>
+          <div class="stat-card glass-panel">
+            <span class="stat-val">0h</span>
+            <span class="stat-label">Time</span>
+          </div>
+        </div>
+        <div class="settings-list">
+          <button class="setting-item glass-btn" id="btnLogout">
+            <i data-lucide="log-out"></i>
+            <span>Sign Out</span>
+          </button>
+          <div class="setting-item glass-btn">
+            <i data-lucide="shield"></i>
+            <span>Safety Settings (Locked)</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- NAVIGATION BAR -->
+    <nav class="bottom-nav glass-panel">
+      <button class="nav-item" data-target="home">
+        <i data-lucide="grid"></i>
+        <span>Home</span>
+      </button>
+      <button class="nav-item active-nav" data-target="reels">
+        <i data-lucide="play-circle"></i>
+        <span>Reels</span>
+      </button>
+      <button class="nav-item" data-target="profile">
+        <i data-lucide="user"></i>
+        <span>Profile</span>
+      </button>
+    </nav>
+
+    <!-- Hidden Canvas -->
+    <canvas id="processingCanvas" style="display: none;"></canvas>
+
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
+
 </html>

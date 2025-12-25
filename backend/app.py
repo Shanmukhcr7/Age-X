@@ -1,115 +1,99 @@
-import base64
-import cv2
-import torch
-import torch.nn as nn
-import numpy as np
-from fastapi import FastAPI
-from pydantic import BaseModel
-from torchvision import models, transforms
-from PIL import Image
-from io import BytesIO
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import base64
+import numpy as np
+from PIL import Image, UnidentifiedImageError
+from io import BytesIO
+import time
+import uvicorn
+import logging
+from age_service import AgeService
 
-# ================= CONFIG =================
-MODEL_PATH = "age_model.pth"
-IMG_SIZE = 224
-STABLE_FRAMES = 3
-# =========================================
+# Setup Logging
+logger = logging.getLogger("uvicorn")
 
-app = FastAPI(title="Age Safe Reels API")
+# Initialize App
+app = FastAPI(
+    title="Age-X Safety API",
+    description="High-performance age detection for secure content delivery.",
+    version="1.0.0"
+)
+
+# Security & CORS
+# In production, specific origins should be allow-listed.
+ORIGINS = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "https://your-deployment-url.com"  # Replace with actual
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # for testing only
+    allow_origins=["*"], # Allow all for dev/demo, strict in prod
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# -------- Device --------
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Initialize Service (Singleton)
+age_service = AgeService()
 
-# -------- Load Model --------
-model = models.resnet18(weights=None)
-model.fc = nn.Linear(model.fc.in_features, 1)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-model.to(device)
-model.eval()
-
-# -------- Transform --------
-transform = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
-])
-
-# -------- Face Detector --------
-face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-)
-
-# -------- Age Category --------
-def age_category(age):
-    age = int(round(age))
-    if age <= 12:
-        return "Kid"
-    elif age <= 17:
-        return "Teen"
-    elif age <= 25:
-        return "Young Adult"
-    elif age <= 59:
-        return "Adult"
-    else:
-        return "Senior"
-
-
-# -------- Request Model --------
 class ImagePayload(BaseModel):
-    image: str  # base64 image
+    image: str  # Base64 encoded string
 
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(round(process_time * 1000, 2)) + "ms"
+    return response
+
+@app.get("/")
+def health_check():
+    return {"status": "active", "service": "Age-X API"}
 
 @app.post("/api/age-check")
-def age_check(payload: ImagePayload):
+async def age_check(payload: ImagePayload):
     try:
-        # Decode base64 image
-        image_bytes = base64.b64decode(payload.image)
-        img = Image.open(BytesIO(image_bytes)).convert("RGB")
-        frame = np.array(img)
-        # Resize for better face detection
-        frame = cv2.resize(frame, (640, 480))
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        # 1. Validation & Decoding
+        if not payload.image:
+            raise HTTPException(status_code=400, detail="Empty image payload")
+        
+        try:
+            image_bytes = base64.b64decode(payload.image)
+            pil_image = Image.open(BytesIO(image_bytes)).convert("RGB")
+            image_np = np.array(pil_image)
+        except (ValueError, UnidentifiedImageError):
+            raise HTTPException(status_code=400, detail="Invalid image format")
 
+        # 2. Inference
+        result = age_service.detect_and_predict(image_np)
+        
+        # 3. Handle Errors (No face, etc)
+        if hasattr(result, "get") and result.get("error"):
+            # Return "Kid" mode if face not found/error (Fail-Safe)
+            return {
+                "age_group": "Kid", 
+                "confidence": 0.0, 
+                "forced_safety": True,
+                "msg": result.get("error")
+            }
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        faces = face_cascade.detectMultiScale(
-    gray,
-    scaleFactor=1.1,
-    minNeighbors=4,
-    minSize=(60, 60)
-)
+        return result
 
-
-        if len(faces) == 0:
-            return {"error": "No face detected"}
-
-        x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
-        face = frame[y:y+h, x:x+w]
-
-        img = Image.fromarray(face)
-        img = transform(img).unsqueeze(0).to(device)
-
-        with torch.no_grad():
-            age = model(img).item()
-
-        age = max(1, min(100, age))
-        category = age_category(age)
-
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"API Error: {e}")
+        # FAIL SAFE: Always return Kid on critical error
         return {
-            "age": round(age, 2),
-            "age_group": category
+            "age_group": "Kid", 
+            "confidence": 0.0, 
+            "forced_safety": True,
+            "error": "Internal Processing Error"
         }
 
-    except Exception as e:
-        return {"error": str(e)}
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

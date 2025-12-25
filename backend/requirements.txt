@@ -1,10 +1,8 @@
-fastapi
-uvicorn
-numpy
-pillow
-python-multipart
-opencv-python-headless
-
-torch==2.9.1+cpu
-torchvision==0.24.1+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
+fastapi>=0.100.0
+uvicorn>=0.23.0
+numpy>=1.24.0
+pillow>=10.0.0
+python-multipart>=0.0.6
+opencv-python>=4.8.0
+torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision>=0.15.0 --index-url https://download.pytorch.org/whl/cpu
