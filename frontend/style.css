@@ -738,3 +738,40 @@ iframe {
     opacity: 0 !important;
     pointer-events: none !important;
 }
+
+/* FORCE FIXES FOR NAV AND REELS */
+.bottom-nav {
+    position: fixed !important;
+    bottom: max(20px, env(safe-area-inset-bottom)) !important;
+    z-index: 1000 !important;
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(20px);
+}
+.reel-container {
+    width: 100vw;
+    height: 100dvh !important;
+    background: black;
+    position: relative;
+    overflow-y: scroll !important;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none; 
+}
+.reel-container::-webkit-scrollbar {
+    display: none;
+}
+.reel-page {
+    width: 100%;
+    height: 100dvh;
+    scroll-snap-align: start;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: black;
+}
+.reel-page iframe {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Fill screen like Reels/Shorts */
+}
+
